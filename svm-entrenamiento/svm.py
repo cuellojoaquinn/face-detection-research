@@ -1,25 +1,33 @@
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn import svm
+import numpy as np
 
-def training_svm(haarFeatures, labels):
-    """
-    Entrena un clasificador SVM usando Haar features.
-    Retorna el modelo, el scaler y los datos de prueba.
-    """
+class SVM:
 
-    # Dividir en entrenamiento y prueba
-    X_train, X_test, y_train, y_test = train_test_split(
-        haarFeatures, labels, test_size=0.2, random_state=42
-    )
+    def __init__(self, learning_rate=0.001, lambda_param=0.01, n_iters=1000):
+        self.lr = learning_rate
+        self.lambda_param = lambda_param
+        self.n_iters = n_iters
+        self.w = None
+        self.b = None
 
-    # Normalizar características
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
 
-    # Entrenar SVM
-    model = svm.SVC(kernel='linear', probability=True)
-    model.fit(X_train, y_train)
+        y_ = np.where(y <= 0, -1, 1)
 
-    return model, scaler, X_test, y_test
+        # init weights
+        self.w = np.zeros(n_features)
+        self.b = 0
+
+        for _ in range(self.n_iters):
+            for idx, x_i in enumerate(X):
+                condition = y_[idx] * (np.dot(x_i, self.w) - self.b) >= 1
+                if condition:
+                    self.w -= self.lr * (2 * self.lambda_param * self.w)
+                else:
+                    self.w -= self.lr * (2 * self.lambda_param * self.w - np.dot(x_i, y_[idx]))
+                    self.b -= self.lr * y_[idx]
+
+
+    def predict(self, X):
+        approx = np.dot(X, self.w) - self.b
+        return np.sign(approx)
